@@ -31,10 +31,42 @@ const App = () => {
       points: 5,
       objectID: 1,
     },
+    {
+      title: "Redux",
+      url: "https://redux.js.org/",
+      author: "Dan Abramov, Andrew Clark",
+      num_comments: 1,
+      points: 5,
+      objectID: 2,
+    },
   ];
 
+  // const getAsyncStories = () =>
+  //   new Promise((resolve) => {
+  //     setTimeout(() => {
+  //       resolve({ data: { stories: initialStories } });
+  //     }, 2000);
+  //   });
+
+  const getAsyncStories = () =>
+    new Promise((resolve) =>
+      setTimeout(resolve, 2000, { data: { stories: initialStories } })
+    );
+
   const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "");
-  const [stories, setStories] = useState(initialStories);
+  const [stories, setStories] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getAsyncStories()
+      .then((result) => {
+        setStories(result.data.stories);
+        setIsLoading(false);
+      })
+      .catch(() => setIsError(true));
+  }, []);
 
   const handleRemoveStory = (item) => {
     const newStories = stories.filter(
@@ -64,7 +96,12 @@ const App = () => {
         <strong>Search: </strong>
       </InputWithLabel>
       <hr />
-      <List list={searchedStories} onRemoveItem={handleRemoveStory} />
+      {isError && <p>Something went wrong ...</p>}
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <List list={searchedStories} onRemoveItem={handleRemoveStory} />
+      )}
     </div>
   );
 };
