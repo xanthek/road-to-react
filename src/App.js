@@ -1,25 +1,20 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useReducer,
-  useCallback,
-} from "react";
+import React from "react";
 import axios from "axios";
+import styled from "styled-components";
 
-//custom hook start
+const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
+
 const useSemiPersistentState = (key, initialState) => {
-  const [value, setValue] = useState(localStorage.getItem(key) || initialState);
+  const [value, setValue] = React.useState(
+    localStorage.getItem(key) || initialState
+  );
 
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem(key, value);
   }, [value, key]);
 
   return [value, setValue];
 };
-//custom hook end
-
-const API_ENDPOINT = "https://hn.algolia.com/api/v1/search?query=";
 
 const storiesReducer = (state, action) => {
   switch (action.type) {
@@ -45,7 +40,7 @@ const storiesReducer = (state, action) => {
     case "REMOVE_STORY":
       return {
         ...state,
-        data: state.filter(
+        data: state.data.filter(
           (story) => action.payload.objectID !== story.objectID
         ),
       };
@@ -53,34 +48,98 @@ const storiesReducer = (state, action) => {
       throw new Error();
   }
 };
+
+const StyledContainer = styled.div`
+  height: 100vw;
+  padding: 20px;
+
+  background: #83a4d4;
+  background: linear-gradient(to left, #b6fbff, #83a4d4);
+
+  color: #171212;
+`;
+
+const StyledHeadlinePrimary = styled.h1`
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: 2px;
+`;
+
+const StyledItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding-bottom: 5px;
+`;
+
+const StyledColumn = styled.span`
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  a {
+    color: inherit;
+  }
+
+  width: ${(props) => props.width};
+`;
+
+const StyledButton = styled.button`
+  background: transparent;
+  border: 1px solid #171212;
+  padding: 5px;
+  cursor: pointer;
+
+  transition: all 0.1s ease-in;
+
+  &:hover {
+    background: #171212;
+    color: #ffffff;
+  }
+`;
+
+const StyledButtonSmall = styled(StyledButton)`
+  padding: 5px;
+`;
+
+const StyledButtonLarge = styled(StyledButton)`
+  padding: 10px;
+`;
+
+const StyledSearchForm = styled.form`
+  padding: 10px 0 20px 0;
+  display: flex;
+  align-items: baseline;
+`;
+
+const StyledLabel = styled.label`
+  border-top: 1px solid #171212;
+  border-left: 1px solid #171212;
+  padding-left: 5px;
+  font-size: 24px;
+`;
+
+const StyledInput = styled.input`
+  border: none;
+  border-bottom: 1px solid #171212;
+  background-color: transparent;
+
+  font-size: 24px;
+`;
+
 const App = () => {
-  // const getAsyncStories = () =>
-  //   new Promise((resolve) => {
-  //     setTimeout(() => {
-  //       resolve({ data: { stories: initialStories } });
-  //     }, 2000);
-  //   });
+  const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "React");
 
-  // const getAsyncStories = () =>
-  //   new Promise((resolve) =>
-  //     setTimeout(resolve, 2000, { data: { stories: initialStories } })
-  //   );
+  const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`);
 
-  const [searchTerm, setSearchTerm] = useSemiPersistentState("search", "");
-  const [stories, dispatchStories] = useReducer(storiesReducer, {
+  const [stories, dispatchStories] = React.useReducer(storiesReducer, {
     data: [],
     isLoading: false,
     isError: false,
   });
 
-  const [url, setUrl] = useState(`${API_ENDPOINT}${searchTerm}`);
-  const handleSearchInput = (event) => {
-    setSearchTerm(event.target.value);
-  };
-  const handleSearchSubmit = () => {
-    setUrl(`${API_ENDPOINT}${searchTerm}`);
-  };
-  const handleFetchStories = useCallback(async () => {
+  const handleFetchStories = React.useCallback(async () => {
     dispatchStories({ type: "STORIES_FETCH_INIT" });
 
     try {
@@ -90,85 +149,98 @@ const App = () => {
         type: "STORIES_FETCH_SUCCESS",
         payload: result.data.hits,
       });
-    } catch (e) {
+    } catch {
       dispatchStories({ type: "STORIES_FETCH_FAILURE" });
     }
   }, [url]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     handleFetchStories();
   }, [handleFetchStories]);
 
   const handleRemoveStory = (item) => {
-    dispatchStories({ type: "REMOVE_STORY", payload: item });
+    dispatchStories({
+      type: "REMOVE_STORY",
+      payload: item,
+    });
   };
-  const handleSearch = (event) => {
-    console.log("setSearchTerm", event.target.value);
+
+  const handleSearchInput = (event) => {
     setSearchTerm(event.target.value);
   };
 
-  // const searchedStories = stories.data.filter(
-  //   (story) =>
-  //     story.title &&
-  //     story.title.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
+  const handleSearchSubmit = (event) => {
+    setUrl(`${API_ENDPOINT}${searchTerm}`);
+
+    event.preventDefault();
+  };
 
   return (
-    <div>
-      <h1>My Hacker Stories</h1>
-      <InputWithLabel
-        id="search"
-        value={searchTerm}
-        onInputChange={handleSearch}
-        type="text"
-        isFocused
-        onInputChange={handleSearchInput}
-      >
-        <strong>Search: </strong>
-      </InputWithLabel>
+    <StyledContainer>
+      <StyledHeadlinePrimary>My Hacker Stories</StyledHeadlinePrimary>
 
-      <button type="button" disabled={!searchTerm} onClick={handleSearchSubmit}>
-        Submit
-      </button>
-      <hr />
+      <SearchForm
+        searchTerm={searchTerm}
+        onSearchInput={handleSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+      />
+
       {stories.isError && <p>Something went wrong ...</p>}
+
       {stories.isLoading ? (
-        <div>Loading...</div>
+        <p>Loading ...</p>
       ) : (
         <List list={stories.data} onRemoveItem={handleRemoveStory} />
       )}
-    </div>
+    </StyledContainer>
   );
 };
+
+const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => (
+  <StyledSearchForm onSubmit={onSearchSubmit}>
+    <InputWithLabel
+      id="search"
+      value={searchTerm}
+      isFocused
+      onInputChange={onSearchInput}
+    >
+      <strong>Search:</strong>
+    </InputWithLabel>
+
+    <StyledButtonLarge type="submit" disabled={!searchTerm}>
+      Submit
+    </StyledButtonLarge>
+  </StyledSearchForm>
+);
 
 const InputWithLabel = ({
   id,
   value,
+  type = "text",
   onInputChange,
-  type,
   isFocused,
   children,
 }) => {
-  const inputRef = useRef();
-  useEffect(() => {
-    if (isFocused && inputRef.current) {
+  const inputRef = React.useRef();
+
+  React.useEffect(() => {
+    if (isFocused) {
       inputRef.current.focus();
     }
   }, [isFocused]);
 
   return (
-    <div>
-      <label htmlFor={id}>{children}</label>
+    <>
+      <StyledLabel htmlFor={id}>{children}</StyledLabel>
       &nbsp;
-      <input
+      <StyledInput
         ref={inputRef}
         id={id}
         type={type}
         value={value}
-        autoFocus={isFocused}
         onChange={onInputChange}
       />
-    </div>
+    </>
   );
 };
 
@@ -177,31 +249,20 @@ const List = ({ list, onRemoveItem }) =>
     <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
   ));
 
-const Item = ({ item, onRemoveItem }) => {
-  const { title, url, author, num_comments, points } = item;
-
-  const handleRemoveItem = () => {
-    onRemoveItem(item);
-  };
-  return (
-    <div>
-      <span>
-        <a href={url}>{title}</a>
-      </span>
-      <span>{author}</span>
-      <span>{num_comments}</span>
-      <span>{points}</span>
-      <button type="button" onClick={handleRemoveItem}>
+const Item = ({ item, onRemoveItem }) => (
+  <StyledItem>
+    <StyledColumn width="40%">
+      <a href={item.url}>{item.title}</a>
+    </StyledColumn>
+    <StyledColumn width="30%">{item.author}</StyledColumn>
+    <StyledColumn width="10%">{item.num_comments}</StyledColumn>
+    <StyledColumn width="10%">{item.points}</StyledColumn>
+    <StyledColumn width="10%">
+      <StyledButtonSmall type="button" onClick={() => onRemoveItem(item)}>
         Dismiss
-      </button>
-      <button type="button" onClick={onRemoveItem.bind(null, item)}>
-        Dismiss 2
-      </button>
-      <button type="button" onClick={() => onRemoveItem(item)}>
-        Dismiss 3
-      </button>
-    </div>
-  );
-};
+      </StyledButtonSmall>
+    </StyledColumn>
+  </StyledItem>
+);
 
 export default App;
